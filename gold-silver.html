@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金銀比套利試算工具</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,'PingFang TC','Microsoft JhengHei',sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh;padding:2rem 1rem}
+  h1{font-size:20px;font-weight:600;margin-bottom:4px;color:#1a1a1a}
+  .subtitle{font-size:13px;color:#888;margin-bottom:24px}
+  .container{max-width:680px;margin:0 auto}
+  .card{background:#fff;border:1px solid #e8e6e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px}
+  .section-title{font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px}
+  .row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .row label{font-size:14px;color:#555;min-width:110px;flex-shrink:0}
+  .row input[type=number]{width:130px;padding:7px 10px;font-size:14px;border:1px solid #ddd;border-radius:7px;outline:none;background:#fafafa;transition:border .15s}
+  .row input[type=number]:focus{border-color:#b0a890;background:#fff}
+  .row span.unit{font-size:13px;color:#aaa}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .ratio-badge{display:inline-flex;align-items:center;gap:8px;background:#f5f4f0;border:1px solid #e0ddd4;border-radius:8px;padding:7px 16px;font-size:14px;color:#666;margin-bottom:16px}
+  .ratio-badge .val{font-size:22px;font-weight:600;color:#1a1a1a}
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+  .metric{background:#f8f7f3;border-radius:8px;padding:12px 14px}
+  .metric .mlabel{font-size:11px;color:#999;margin:0 0 4px}
+  .metric .mval{font-size:18px;font-weight:600;color:#1a1a1a;margin:0}
+  .metric.pos .mval{color:#2d7d46}
+  .metric.neg .mval{color:#c0392b}
+  .metric.neu .mval{color:#888}
+  .scenario-header{font-size:13px;font-weight:500;color:#777;margin:14px 0 8px;padding-left:2px}
+  table.detail{width:100%;font-size:13px;border-collapse:collapse}
+  table.detail th{color:#aaa;font-weight:400;text-align:right;padding:5px 6px;border-bottom:1px solid #f0ede6}
+  table.detail th:first-child{text-align:left}
+  table.detail td{text-align:right;padding:5px 6px;color:#1a1a1a}
+  table.detail td:first-child{text-align:left;color:#666}
+  table.detail tr{border-bottom:1px solid #f5f3ee}
+  table.detail tr:last-child{border-bottom:none}
+  .highlight-row td{font-weight:600;color:#1a1a1a !important;background:#f8f7f3}
+  .divider{height:1px;background:#f0ede6;margin:14px 0}
+  .toggle-group{display:flex;border:1px solid #ddd;border-radius:8px;overflow:hidden;width:fit-content}
+  .toggle-btn{padding:8px 22px;font-size:14px;cursor:pointer;background:transparent;border:none;color:#888;font-family:inherit;transition:background .15s,color .15s}
+  .toggle-btn.active.widen{background:#ddeaf8;color:#1a5fa8;font-weight:500}
+  .toggle-btn.active.narrow{background:#ddf0e2;color:#1e6e3a;font-weight:500}
+  .toggle-btn:not(.active):hover{background:#f5f4f0}
+  .toggle-divider{width:1px;background:#ddd;flex-shrink:0}
+  .direction-hint{font-size:12px;color:#aaa;margin-top:8px}
+  .long{color:#2d7d46;font-weight:600}
+  .short{color:#c0392b;font-weight:600}
+  .footer{text-align:center;font-size:12px;color:#ccc;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>金銀比套利試算</h1>
+  <p class="subtitle">Gold / Silver Ratio Arbitrage Calculator</p>
+
+  <div class="card">
+    <p class="section-title">交易方向</p>
+    <div class="toggle-group">
+      <button class="toggle-btn active widen" id="btn_widen" onclick="setDir('widen')">預期金銀比縮小</button>
+      <div class="toggle-divider"></div>
+      <button class="toggle-btn narrow" id="btn_narrow" onclick="setDir('narrow')">預期金銀比擴大</button>
+    </div>
+    <p class="direction-hint" id="dir_hint"></p>
+  </div>
+
+  <div class="card">
+    <p class="section-title">合約規格</p>
+    <div class="two-col">
+      <div>
+        <div class="row">
+          <label>XAU 規格</label>
+          <input type="number" id="xau_spec" value="100" step="1" min="1">
+          <span class="unit">oz/手</span>
+        </div>
+        <div class="row">
+          <label>XAU 最小手數</label>
+          <input type="number" id="xau_min_lot" value="0.01" step="0.01" min="0.01">
+          <span class="unit">手</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label>XAG 規格</label>
+          <input type="number" id="xag_spec" value="1000" step="1" min="1">
+          <span class="unit">oz/手</span>
+        </div>
+        <div class="row">
+          <label>XAG 最小手數</label>
+          <input type="number" id="xag_min_lot" value="0.01" step="0.01" min="0.01">
+          <span class="unit">手</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">可調參數</p>
+    <div class="two-col">
+      <div>
+        <div class="row">
+          <label>金價 (XAU)</label>
+          <input type="number" id="xau_price" value="4752" step="0.01" min="0.01">
+          <span class="unit">USD/oz</span>
+        </div>
+        <div class="row">
+          <label>XAU 手數</label>
+          <input type="number" id="xau_lots" value="0.01" step="0.01" min="0.01">
+          <span class="unit">手</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label>銀價 (XAG)</label>
+          <input type="number" id="xag_price" value="86.6" step="0.01" min="0.01">
+          <span class="unit">USD/oz</span>
+        </div>
+        <div class="row">
+          <label>目標金銀比</label>
+          <input type="number" id="target_ratio" value="65" step="0.5" min="1">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">目前市場狀態</p>
+    <div class="ratio-badge">
+      目前金銀比：<span class="val" id="current_ratio">—</span>
+    </div>
+    <div class="result-grid">
+      <div class="metric">
+        <p class="mlabel">XAU 曝險</p>
+        <p class="mval" id="xau_exposure">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">XAG 對沖手數</p>
+        <p class="mval" id="xag_lots">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">XAG 曝險</p>
+        <p class="mval" id="xag_exposure">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">曝險誤差</p>
+        <p class="mval" id="exposure_diff">—</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">預期損益試算</p>
+
+    <p class="scenario-header">情境 A：金價不動，銀價變動至目標比</p>
+    <table class="detail">
+      <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (USD)</th></tr></thead>
+      <tbody>
+        <tr><td id="a_xag_label">XAG</td><td id="a_xag_entry">—</td><td id="a_xag_exit">—</td><td id="a_xag_pnl">—</td></tr>
+        <tr><td id="a_xau_label">XAU</td><td id="a_xau_entry">—</td><td id="a_xau_exit">—</td><td id="a_xau_pnl">—</td></tr>
+        <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="a_total">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+
+    <p class="scenario-header">情境 B：銀價不動，金價變動至目標比</p>
+    <table class="detail">
+      <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (USD)</th></tr></thead>
+      <tbody>
+        <tr><td id="b_xag_label">XAG</td><td id="b_xag_entry">—</td><td id="b_xag_exit">—</td><td id="b_xag_pnl">—</td></tr>
+        <tr><td id="b_xau_label">XAU</td><td id="b_xau_entry">—</td><td id="b_xau_exit">—</td><td id="b_xau_pnl">—</td></tr>
+        <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="b_total">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+    <div class="result-grid" style="margin-top:8px">
+      <div class="metric" id="card_a">
+        <p class="mlabel">情境 A 總損益</p>
+        <p class="mval" id="summary_a">—</p>
+      </div>
+      <div class="metric" id="card_b">
+        <p class="mlabel">情境 B 總損益</p>
+        <p class="mval" id="summary_b">—</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer">金銀比套利試算工具 · 僅供參考，不構成投資建議</p>
+</div>
+
+<script>
+let direction = 'widen';
+
+function setDir(d){
+  direction = d;
+  document.getElementById('btn_widen').className = 'toggle-btn'+(d==='widen'?' active widen':'');
+  document.getElementById('btn_narrow').className = 'toggle-btn'+(d==='narrow'?' active narrow':'');
+  calc();
+}
+
+['xau_price','xag_price','xau_lots','target_ratio','xau_spec','xag_spec','xau_min_lot','xag_min_lot']
+  .forEach(id => document.getElementById(id).addEventListener('input', calc));
+
+function fmt(n, dec=2){ return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+function pnlClass(n){ return n>0?'pos':n<0?'neg':'neu'; }
+function pnlStr(n){ return (n>0?'+':'')+fmt(n); }
+function pnl(dir, entry, exit, lots, spec){
+  return dir==='long' ? (exit-entry)*lots*spec : (entry-exit)*lots*spec;
+}
+
+function getDecimalPlaces(n){
+  const s = n.toString();
+  const dot = s.indexOf('.');
+  return dot === -1 ? 0 : s.length - dot - 1;
+}
+
+function calc(){
+  const xau      = parseFloat(document.getElementById('xau_price').value)||0;
+  const xag      = parseFloat(document.getElementById('xag_price').value)||0;
+  const xau_lots = parseFloat(document.getElementById('xau_lots').value)||0;
+  const target   = parseFloat(document.getElementById('target_ratio').value)||0;
+  const xau_spec    = parseFloat(document.getElementById('xau_spec').value)||0;
+  const xag_spec    = parseFloat(document.getElementById('xag_spec').value)||0;
+  const xau_min_lot = parseFloat(document.getElementById('xau_min_lot').value)||0;
+  const xag_min_lot = parseFloat(document.getElementById('xag_min_lot').value)||0;
+
+  if(!xau||!xag||!xau_lots||!target||!xau_spec||!xag_spec||!xau_min_lot||!xag_min_lot) return;
+
+  // Keep XAU lots arrow step and min in sync with min lot
+  document.getElementById('xau_lots').step = xau_min_lot;
+  document.getElementById('xau_lots').min  = xau_min_lot;
+
+  const expand  = direction==='narrow';
+  const xau_dir = expand ? 'long'  : 'short';
+  const xag_dir = expand ? 'short' : 'long';
+
+  document.getElementById('dir_hint').innerHTML = expand
+    ? '預期金銀比擴大：<span class="long">多 XAU</span>　<span class="short">空 XAG</span>'
+    : '預期金銀比縮小：<span class="short">空 XAU</span>　<span class="long">多 XAG</span>';
+
+  const current_ratio  = xau/xag;
+  const xau_exposure   = xau_lots*xau_spec*xau;
+
+  // Snap XAG lots to min lot step: compare floor vs ceil, pick smaller exposure diff
+  const xag_lots_raw   = xau_exposure/xag/xag_spec;
+  const steps          = Math.floor(xag_lots_raw/xag_min_lot);
+  const xag_lots_floor = parseFloat((steps * xag_min_lot).toFixed(10));
+  const xag_lots_ceil  = parseFloat(((steps + 1) * xag_min_lot).toFixed(10));
+  const diff_floor     = Math.abs(xag_lots_floor*xag_spec*xag - xau_exposure);
+  const diff_ceil      = Math.abs(xag_lots_ceil*xag_spec*xag  - xau_exposure);
+  const xag_lots       = diff_floor <= diff_ceil ? xag_lots_floor : xag_lots_ceil;
+
+  const xag_exposure   = xag_lots*xag_spec*xag;
+  const exposure_diff  = xag_exposure-xau_exposure;
+
+  const dec = (xag_min_lot.toString().split('.')[1]||'').length;
+  document.getElementById('current_ratio').textContent = fmt(current_ratio,2);
+  document.getElementById('xau_exposure').textContent  = '$'+fmt(xau_exposure,0);
+  document.getElementById('xag_lots').textContent      = fmt(xag_lots, dec)+' 手';
+  document.getElementById('xag_exposure').textContent  = '$'+fmt(xag_exposure,0);
+  const diffEl = document.getElementById('exposure_diff');
+  diffEl.textContent = pnlStr(exposure_diff)+' USD';
+  diffEl.className = 'mval '+pnlClass(exposure_diff);
+
+  const xau_lbl = expand ? 'XAU（做多）' : 'XAU（做空）';
+  const xag_lbl = expand ? 'XAG（做空）' : 'XAG（做多）';
+  ['a','b'].forEach(s=>{
+    document.getElementById(s+'_xau_label').textContent = xau_lbl;
+    document.getElementById(s+'_xag_label').textContent = xag_lbl;
+  });
+
+  // Scenario A: XAU fixed, XAG moves
+  const a_xag_exit = xau/target;
+  const a_xag_pnl  = pnl(xag_dir, xag, a_xag_exit, xag_lots, xag_spec);
+  const a_total    = a_xag_pnl;
+
+  document.getElementById('a_xag_entry').textContent = fmt(xag);
+  document.getElementById('a_xag_exit').textContent  = fmt(a_xag_exit);
+  document.getElementById('a_xag_pnl').textContent   = pnlStr(a_xag_pnl);
+  document.getElementById('a_xau_entry').textContent = fmt(xau);
+  document.getElementById('a_xau_exit').textContent  = fmt(xau);
+  document.getElementById('a_xau_pnl').textContent   = '0.00';
+  document.getElementById('a_total').textContent     = pnlStr(a_total);
+
+  // Scenario B: XAG fixed, XAU moves
+  const b_xau_exit = xag*target;
+  const b_xau_pnl  = pnl(xau_dir, xau, b_xau_exit, xau_lots, xau_spec);
+  const b_total    = b_xau_pnl;
+
+  document.getElementById('b_xag_entry').textContent = fmt(xag);
+  document.getElementById('b_xag_exit').textContent  = fmt(xag);
+  document.getElementById('b_xag_pnl').textContent   = '0.00';
+  document.getElementById('b_xau_entry').textContent = fmt(xau);
+  document.getElementById('b_xau_exit').textContent  = fmt(b_xau_exit);
+  document.getElementById('b_xau_pnl').textContent   = pnlStr(b_xau_pnl);
+  document.getElementById('b_total').textContent     = pnlStr(b_total);
+
+  document.getElementById('summary_a').textContent = pnlStr(a_total)+' USD';
+  document.getElementById('summary_b').textContent = pnlStr(b_total)+' USD';
+  document.getElementById('card_a').className = 'metric '+pnlClass(a_total);
+  document.getElementById('card_b').className = 'metric '+pnlClass(b_total);
+}
+
+calc();
+</script>
+</body>
+</html>

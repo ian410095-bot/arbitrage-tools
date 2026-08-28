@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>套利指標儀表板</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,'PingFang TC','Microsoft JhengHei',sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh;padding:2rem 1rem}
+  .container{max-width:960px;margin:0 auto}
+  h1{font-size:24px;font-weight:600;margin-bottom:4px;color:#1a1a1a}
+  .subtitle{font-size:13px;color:#888;margin-bottom:28px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+
+  .card{background:#fff;border:1px solid #e8e6e0;border-radius:12px;padding:1.25rem 1.5rem;transition:all .2s;position:relative}
+  .card.active{cursor:pointer}
+  .card.active:hover{border-color:#c9c3b0;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.04)}
+  .card.disabled{opacity:.55;background:#f9f8f4}
+
+  .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+  .card-title{font-size:15px;font-weight:600;color:#1a1a1a}
+  .card-subtitle{font-size:11px;color:#aaa;margin-top:2px;letter-spacing:.03em}
+
+  .status-badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600;letter-spacing:.05em}
+  .status-badge.normal{background:#eef3e6;color:#4a6b28}
+  .status-badge.deviated{background:#faf1dc;color:#8a6118}
+  .status-badge.extreme{background:#f7dfd9;color:#8a2818}
+  .status-badge.na{background:#eeeae0;color:#999}
+  .status-badge.soon{background:#e8e4d8;color:#8a7f5c}
+
+  .metric-main{margin:14px 0 10px}
+  .metric-main .label{font-size:11px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em}
+  .metric-main .value{font-size:28px;font-weight:600;color:#1a1a1a}
+  .metric-main .value.na{color:#c9c3b0}
+
+  .input-row{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #f0ede6}
+  .input-group{flex:1}
+  .input-group label{display:block;font-size:11px;color:#888;margin-bottom:3px}
+  .input-group input{width:100%;padding:6px 8px;font-size:13px;border:1px solid #ddd;border-radius:6px;outline:none;background:#fafafa;font-family:inherit}
+  .input-group input:focus{border-color:#b0a890;background:#fff}
+
+  .card-footer{margin-top:14px;padding-top:12px;border-top:1px solid #f0ede6;font-size:12px;color:#aaa;display:flex;justify-content:space-between;align-items:center}
+  .card-footer .arrow{font-size:16px;color:#c9c3b0;transition:transform .15s}
+  .card.active:hover .card-footer .arrow{transform:translateX(3px);color:#8a7f5c}
+
+  .coming-soon{text-align:center;padding:30px 10px;color:#aaa;font-size:13px}
+  .coming-soon .icon{font-size:24px;margin-bottom:8px;color:#c9c3b0}
+
+  .footer{text-align:center;font-size:12px;color:#ccc;margin-top:40px;padding-top:20px}
+
+  @media (max-width:600px){
+    body{padding:1.25rem .75rem}
+    h1{font-size:20px}
+    .card{padding:1rem 1.15rem}
+    .metric-main .value{font-size:24px}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>套利指標儀表板</h1>
+  <p class="subtitle">Arbitrage Indicator Dashboard</p>
+
+  <div class="grid">
+
+    <!-- 金銀比（已啟用） -->
+    <div class="card active" onclick="goTo('gold-silver')">
+      <div class="card-header">
+        <div>
+          <div class="card-title">金銀比</div>
+          <div class="card-subtitle">XAU / XAG RATIO</div>
+        </div>
+        <div class="status-badge na" id="gs_status">待輸入</div>
+      </div>
+
+      <div class="metric-main">
+        <div class="label">目前比值</div>
+        <div class="value na" id="gs_ratio">—</div>
+      </div>
+
+      <div class="input-row" onclick="event.stopPropagation()">
+        <div class="input-group">
+          <label>XAU</label>
+          <input type="number" id="gs_xau" placeholder="4752" step="0.01">
+        </div>
+        <div class="input-group">
+          <label>XAG</label>
+          <input type="number" id="gs_xag" placeholder="86.6" step="0.01">
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <span>進入計算器</span>
+        <span class="arrow">→</span>
+      </div>
+    </div>
+
+    <!-- 黃金期現價差（Coming Soon） -->
+    <div class="card disabled">
+      <div class="card-header">
+        <div>
+          <div class="card-title">黃金期現價差</div>
+          <div class="card-subtitle">GOLD FUTURES BASIS</div>
+        </div>
+        <div class="status-badge soon">COMING SOON</div>
+      </div>
+      <div class="coming-soon">
+        <div class="icon">◔</div>
+        <div>開發中</div>
+      </div>
+    </div>
+
+    <!-- Brent/WTI 價差（Coming Soon） -->
+    <div class="card disabled">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Brent / WTI 價差</div>
+          <div class="card-subtitle">CRUDE OIL SPREAD</div>
+        </div>
+        <div class="status-badge soon">COMING SOON</div>
+      </div>
+      <div class="coming-soon">
+        <div class="icon">◔</div>
+        <div>開發中</div>
+      </div>
+    </div>
+
+    <!-- 油品裂解價差（Coming Soon） -->
+    <div class="card disabled">
+      <div class="card-header">
+        <div>
+          <div class="card-title">油品裂解價差</div>
+          <div class="card-subtitle">CRACK SPREAD</div>
+        </div>
+        <div class="status-badge soon">COMING SOON</div>
+      </div>
+      <div class="coming-soon">
+        <div class="icon">◔</div>
+        <div>開發中</div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="footer">套利指標儀表板 · 僅供參考，不構成投資建議</p>
+</div>
+
+<script>
+function goTo(page){
+  window.location.href = page;
+}
+
+// Gold/Silver ratio live calc
+const xauInput = document.getElementById('gs_xau');
+const xagInput = document.getElementById('gs_xag');
+const ratioEl  = document.getElementById('gs_ratio');
+const statusEl = document.getElementById('gs_status');
+
+function updateRatio(){
+  const xau = parseFloat(xauInput.value);
+  const xag = parseFloat(xagInput.value);
+  if(!xau || !xag){
+    ratioEl.textContent = '—';
+    ratioEl.classList.add('na');
+    statusEl.textContent = '待輸入';
+    statusEl.className = 'status-badge na';
+    return;
+  }
+  const ratio = xau / xag;
+  ratioEl.textContent = ratio.toFixed(2);
+  ratioEl.classList.remove('na');
+
+  // Rough status thresholds (placeholder — will be replaced by real historical stats later)
+  // Historical avg ~65, ±1σ ~55-75, extreme <45 or >85
+  let cls, text;
+  if(ratio < 45 || ratio > 85){ cls='extreme'; text='極端'; }
+  else if(ratio < 55 || ratio > 75){ cls='deviated'; text='偏離'; }
+  else { cls='normal'; text='正常'; }
+  statusEl.textContent = text;
+  statusEl.className = 'status-badge '+cls;
+}
+
+xauInput.addEventListener('input', updateRatio);
+xagInput.addEventListener('input', updateRatio);
+</script>
+</body>
+</html>

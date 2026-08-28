@@ -47,6 +47,28 @@
   .long{color:#2d7d46;font-weight:600}
   .short{color:#c0392b;font-weight:600}
   .footer{text-align:center;font-size:12px;color:#ccc;margin-top:24px}
+
+  @media (max-width:600px){
+    body{padding:1.25rem .75rem}
+    h1{font-size:18px}
+    .subtitle{font-size:12px;margin-bottom:18px}
+    .card{padding:.85rem 1rem;margin-bottom:10px}
+    /* Stack two columns into one on mobile */
+    .two-col{grid-template-columns:1fr;gap:0}
+    /* Make input rows use full width */
+    .row{gap:6px;flex-wrap:nowrap}
+    .row label{min-width:0;flex:0 0 auto;font-size:13px;width:auto}
+    .row input[type=number]{flex:1;width:auto;min-width:0;font-size:15px}
+    .row span.unit{white-space:nowrap;font-size:12px;flex-shrink:0}
+    .toggle-btn{padding:8px 16px;font-size:13px}
+    .ratio-badge{padding:6px 12px;font-size:13px}
+    .ratio-badge .val{font-size:19px}
+    .metric{padding:10px 12px}
+    .metric .mval{font-size:16px}
+    table.detail{font-size:12px}
+    table.detail th,table.detail td{padding:5px 4px}
+    .scenario-header{font-size:12px}
+  }
 </style>
 </head>
 <body>

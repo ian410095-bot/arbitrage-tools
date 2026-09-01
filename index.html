@@ -82,11 +82,11 @@
       <div class="input-row" onclick="event.stopPropagation()">
         <div class="input-group">
           <label>XAU</label>
-          <input type="number" id="gs_xau" placeholder="4752" step="0.01">
+          <input type="number" id="gs_xau" placeholder="4456" step="0.01">
         </div>
         <div class="input-group">
           <label>XAG</label>
-          <input type="number" id="gs_xag" placeholder="86.6" step="0.01">
+          <input type="number" id="gs_xag" placeholder="66.79" step="0.01">
         </div>
       </div>
 
@@ -126,18 +126,39 @@
       </div>
     </div>
 
-    <!-- 油品裂解價差（Coming Soon） -->
-    <div class="card disabled">
+    <!-- 油品裂解價差（已啟用） -->
+    <div class="card active" onclick="goTo('crack-spread')">
       <div class="card-header">
         <div>
-          <div class="card-title">油品裂解價差</div>
-          <div class="card-subtitle">CRACK SPREAD</div>
+          <div class="card-title">3:2:1 裂解價差</div>
+          <div class="card-subtitle">CRACK SPREAD (WTI)</div>
         </div>
-        <div class="status-badge soon">COMING SOON</div>
+        <div class="status-badge na" id="cs_status">待輸入</div>
       </div>
-      <div class="coming-soon">
-        <div class="icon">◔</div>
-        <div>開發中</div>
+
+      <div class="metric-main">
+        <div class="label">目前價差 (USD/桶)</div>
+        <div class="value na" id="cs_crack">—</div>
+      </div>
+
+      <div class="input-row" onclick="event.stopPropagation()" style="flex-wrap:wrap">
+        <div class="input-group" style="min-width:0">
+          <label>原油</label>
+          <input type="number" id="cs_crude" placeholder="86.5" step="0.01">
+        </div>
+        <div class="input-group" style="min-width:0">
+          <label>汽油</label>
+          <input type="number" id="cs_gas" placeholder="3.1151" step="0.0001">
+        </div>
+        <div class="input-group" style="min-width:0">
+          <label>蒸餾油</label>
+          <input type="number" id="cs_distill" placeholder="4.4399" step="0.0001">
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <span>進入計算器</span>
+        <span class="arrow">→</span>
       </div>
     </div>
 
@@ -183,6 +204,43 @@ function updateRatio(){
 
 xauInput.addEventListener('input', updateRatio);
 xagInput.addEventListener('input', updateRatio);
+
+// Crack spread live calc
+const csCrude   = document.getElementById('cs_crude');
+const csGas     = document.getElementById('cs_gas');
+const csDistill = document.getElementById('cs_distill');
+const csCrackEl = document.getElementById('cs_crack');
+const csStatusEl = document.getElementById('cs_status');
+
+function updateCrack(){
+  const crude   = parseFloat(csCrude.value);
+  const gas     = parseFloat(csGas.value);
+  const distill = parseFloat(csDistill.value);
+  if(!crude || !gas || !distill){
+    csCrackEl.textContent = '—';
+    csCrackEl.classList.add('na');
+    csStatusEl.textContent = '待輸入';
+    csStatusEl.className = 'status-badge na';
+    return;
+  }
+  // 3:2:1 crack in USD/barrel = (2*gas*42 + 1*distill*42)/3 − crude
+  const crack = (2*gas*42 + 1*distill*42)/3 - crude;
+  csCrackEl.textContent = crack.toFixed(2);
+  csCrackEl.classList.remove('na');
+
+  // Rough status thresholds for 3:2:1 crack (USD/barrel)
+  // Historical normal ~15-25, elevated 25-40, extreme >40 or <10
+  let cls, text;
+  if(crack > 40 || crack < 10){ cls='extreme'; text='極端'; }
+  else if(crack > 25 || crack < 15){ cls='deviated'; text='偏離'; }
+  else { cls='normal'; text='正常'; }
+  csStatusEl.textContent = text;
+  csStatusEl.className = 'status-badge '+cls;
+}
+
+csCrude.addEventListener('input', updateCrack);
+csGas.addEventListener('input', updateCrack);
+csDistill.addEventListener('input', updateCrack);
 </script>
 </body>
 </html>

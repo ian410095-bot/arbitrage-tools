@@ -95,8 +95,8 @@
 </head>
 <body>
 <div class="container">
-  <h1>3:2:1 裂解價差試算</h1>
-  <p class="subtitle">3:2:1 Crack Spread Calculator</p>
+  <h1 id="page_title">3:2:1 裂解價差試算</h1>
+  <p class="subtitle" id="page_subtitle">3:2:1 Crack Spread Calculator</p>
 
   <div class="card">
     <p class="section-title">原油體系</p>
@@ -104,6 +104,30 @@
       <button class="toggle-btn active wti" id="btn_wti" onclick="setSystem('wti')">WTI</button>
       <div class="toggle-divider"></div>
       <button class="toggle-btn brent" id="btn_brent" onclick="setSystem('brent')">Brent</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">裂解比例</p>
+    <div class="row" style="margin-bottom:0">
+      <label style="min-width:80px">比例</label>
+      <select id="ratio_select" onchange="setRatio(this.value)" style="padding:7px 10px;font-size:14px;border:1px solid #ddd;border-radius:7px;background:#fafafa;font-family:inherit;min-width:200px">
+        <option value="321">3:2:1（3 原油 + 2 汽油 + 1 蒸餾油）</option>
+        <option value="521">5:2:1（5 原油 + 2 汽油 + 1 蒸餾油）</option>
+        <option value="532">5:3:2（5 原油 + 3 汽油 + 2 蒸餾油）</option>
+        <option value="211">2:1:1（2 原油 + 1 汽油 + 1 蒸餾油／柴油）</option>
+        <option value="111">1:1（1 原油 + 1 成品油，簡化版）</option>
+      </select>
+    </div>
+    <p class="direction-hint" id="ratio_hint" style="margin-top:10px"></p>
+
+    <div id="product_toggle_wrapper" style="margin-top:12px;display:none">
+      <p class="section-title" style="margin-bottom:8px">成品油類型</p>
+      <div class="toggle-group">
+        <button class="toggle-btn" id="btn_product_gas" onclick="setProduct('gas')">汽油</button>
+        <div class="toggle-divider"></div>
+        <button class="toggle-btn active crack-long" id="btn_product_distill" onclick="setProduct('distill')">蒸餾油</button>
+      </div>
     </div>
   </div>
 
@@ -120,7 +144,7 @@
   <div class="card">
     <p class="section-title">合約規格</p>
     <div class="three-col">
-      <div>
+      <div data-leg="crude">
         <div class="row">
           <label id="crude_spec_label">WTI 規格</label>
           <input type="number" id="crude_spec" value="1000" step="1" min="1">
@@ -132,7 +156,7 @@
           <span class="unit">手</span>
         </div>
       </div>
-      <div>
+      <div data-leg="gas">
         <div class="row">
           <label>汽油規格</label>
           <input type="number" id="gas_spec" value="42000" step="1" min="1">
@@ -144,7 +168,7 @@
           <span class="unit">手</span>
         </div>
       </div>
-      <div>
+      <div data-leg="distill">
         <div class="row">
           <label>蒸餾油規格</label>
           <input type="number" id="distill_spec" value="42000" step="1" min="1">
@@ -169,14 +193,14 @@
           <span class="unit">USD/桶</span>
         </div>
       </div>
-      <div>
+      <div data-leg="gas">
         <div class="row">
           <label>汽油價格</label>
           <input type="number" id="gas_price" value="3.1151" step="0.0001" min="0.0001">
           <span class="unit">USD/加侖</span>
         </div>
       </div>
-      <div>
+      <div data-leg="distill">
         <div class="row">
           <label>蒸餾油價格</label>
           <input type="number" id="distill_price" value="4.4399" step="0.0001" min="0.0001">
@@ -189,7 +213,7 @@
         <div class="row">
           <label>基準組數</label>
           <input type="number" id="base_lots" value="0.01" step="0.01" min="0.01">
-          <span class="unit">組（1 組 = 3:2:1）</span>
+          <span class="unit" id="base_lots_hint">組（1 組 = 3:2:1）</span>
         </div>
       </div>
       <div>
@@ -209,17 +233,19 @@
     </div>
     <div class="result-grid">
       <div class="metric">
-        <p class="mlabel">原油手數（3 倍）</p>
+        <p class="mlabel" id="crude_lots_label">原油手數（3 倍）</p>
         <p class="mval" id="crude_lots">—</p>
       </div>
-      <div class="metric">
-        <p class="mlabel">汽油手數（2 倍）</p>
+      <div class="metric" data-leg="gas">
+        <p class="mlabel" id="gas_lots_label">汽油手數（2 倍）</p>
         <p class="mval" id="gas_lots">—</p>
       </div>
-      <div class="metric">
-        <p class="mlabel">蒸餾油手數（1 倍）</p>
+      <div class="metric" data-leg="distill">
+        <p class="mlabel" id="distill_lots_label">蒸餾油手數（1 倍）</p>
         <p class="mval" id="distill_lots">—</p>
       </div>
+    </div>
+    <div class="result-grid" style="margin-top:10px">
       <div class="metric">
         <p class="mlabel">原油曝險</p>
         <p class="mval" id="crude_exposure">—</p>
@@ -229,7 +255,7 @@
         <p class="mval" id="products_exposure">—</p>
       </div>
       <div class="metric">
-        <p class="mlabel">曝險誤差</p>
+        <p class="mlabel">曝險差異</p>
         <p class="mval" id="exposure_diff">—</p>
       </div>
     </div>
@@ -238,9 +264,19 @@
   <div class="card">
     <p class="section-title">預期損益試算</p>
 
-    <div class="metric" id="card_total" style="margin-bottom:6px">
-      <p class="mlabel">預期總損益（三情境合計相同，為套利部位特性）</p>
-      <p class="mval" id="summary_total">—</p>
+    <div class="result-grid" style="margin-bottom:6px">
+      <div class="metric" id="card_a">
+        <p class="mlabel">情境 A 總損益</p>
+        <p class="mval" id="summary_a">—</p>
+      </div>
+      <div class="metric" id="card_b">
+        <p class="mlabel">情境 B 總損益</p>
+        <p class="mval" id="summary_b">—</p>
+      </div>
+      <div class="metric" id="card_c">
+        <p class="mlabel">情境 C 總損益</p>
+        <p class="mval" id="summary_c">—</p>
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -250,8 +286,8 @@
       <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (USD)</th></tr></thead>
       <tbody>
         <tr><td id="a_crude_label">原油</td><td id="a_crude_entry">—</td><td id="a_crude_exit">—</td><td id="a_crude_pnl">—</td></tr>
-        <tr><td id="a_gas_label">汽油</td><td id="a_gas_entry">—</td><td id="a_gas_exit">—</td><td id="a_gas_pnl">—</td></tr>
-        <tr><td id="a_distill_label">蒸餾油</td><td id="a_distill_entry">—</td><td id="a_distill_exit">—</td><td id="a_distill_pnl">—</td></tr>
+        <tr data-leg="gas"><td id="a_gas_label">汽油</td><td id="a_gas_entry">—</td><td id="a_gas_exit">—</td><td id="a_gas_pnl">—</td></tr>
+        <tr data-leg="distill"><td id="a_distill_label">蒸餾油</td><td id="a_distill_entry">—</td><td id="a_distill_exit">—</td><td id="a_distill_pnl">—</td></tr>
         <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="a_total">—</td></tr>
       </tbody>
     </table>
@@ -263,8 +299,8 @@
       <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (USD)</th></tr></thead>
       <tbody>
         <tr><td id="b_crude_label">原油</td><td id="b_crude_entry">—</td><td id="b_crude_exit">—</td><td id="b_crude_pnl">—</td></tr>
-        <tr><td id="b_gas_label">汽油</td><td id="b_gas_entry">—</td><td id="b_gas_exit">—</td><td id="b_gas_pnl">—</td></tr>
-        <tr><td id="b_distill_label">蒸餾油</td><td id="b_distill_entry">—</td><td id="b_distill_exit">—</td><td id="b_distill_pnl">—</td></tr>
+        <tr data-leg="gas"><td id="b_gas_label">汽油</td><td id="b_gas_entry">—</td><td id="b_gas_exit">—</td><td id="b_gas_pnl">—</td></tr>
+        <tr data-leg="distill"><td id="b_distill_label">蒸餾油</td><td id="b_distill_entry">—</td><td id="b_distill_exit">—</td><td id="b_distill_pnl">—</td></tr>
         <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="b_total">—</td></tr>
       </tbody>
     </table>
@@ -276,8 +312,8 @@
       <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (USD)</th></tr></thead>
       <tbody>
         <tr><td id="c_crude_label">原油</td><td id="c_crude_entry">—</td><td id="c_crude_exit">—</td><td id="c_crude_pnl">—</td></tr>
-        <tr><td id="c_gas_label">汽油</td><td id="c_gas_entry">—</td><td id="c_gas_exit">—</td><td id="c_gas_pnl">—</td></tr>
-        <tr><td id="c_distill_label">蒸餾油</td><td id="c_distill_entry">—</td><td id="c_distill_exit">—</td><td id="c_distill_pnl">—</td></tr>
+        <tr data-leg="gas"><td id="c_gas_label">汽油</td><td id="c_gas_entry">—</td><td id="c_gas_exit">—</td><td id="c_gas_pnl">—</td></tr>
+        <tr data-leg="distill"><td id="c_distill_label">蒸餾油</td><td id="c_distill_entry">—</td><td id="c_distill_exit">—</td><td id="c_distill_pnl">—</td></tr>
         <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="c_total">—</td></tr>
       </tbody>
     </table>
@@ -289,12 +325,48 @@
 <script>
 let system = 'wti';
 let direction = 'short';
+let ratioKey = '321';
+let oneProduct = 'distill';  // For 1:1 mode: 'gas' or 'distill'
 
 // Default prices for each system
 const defaults = {
   wti:   { crude:86.5,  gas:3.1151, distill:4.4399, name:'WTI' },
   brent: { crude:88,    gas:3.1151, distill:4.4399, name:'Brent' }
 };
+
+// Ratio definitions: crude, gas, distillate multipliers
+const ratios = {
+  '321': { crude:3, gas:2, distill:1, label:'3:2:1', desc:'美國最主流：3 桶原油煉出 2 桶汽油 + 1 桶蒸餾油' },
+  '521': { crude:5, gas:2, distill:1, label:'5:2:1', desc:'汽油權重較低的變體，強調原油端曝險' },
+  '532': { crude:5, gas:3, distill:2, label:'5:3:2', desc:'蒸餾油權重較高，較符合現代煉油廠實際產出' },
+  '211': { crude:2, gas:1, distill:1, label:'2:1:1', desc:'歐洲/亞洲常用，汽油與柴油/Gasoil 權重相等（常搭配 Brent）' },
+  '111': { crude:1, gas:0, distill:1, label:'1:1',   desc:'簡化版：1 桶原油 vs 1 桶單一成品油' }
+};
+
+// Get effective ratio (handles 1:1 with product selection)
+function effectiveRatio(){
+  const r = ratios[ratioKey];
+  if(ratioKey === '111'){
+    if(oneProduct === 'gas'){
+      return { crude:1, gas:1, distill:0, label:'1:1', desc:r.desc };
+    }
+    return { crude:1, gas:0, distill:1, label:'1:1', desc:r.desc };
+  }
+  return r;
+}
+
+// Show/hide leg-specific UI based on effective ratio
+function applyLegVisibility(){
+  const r = effectiveRatio();
+  document.querySelectorAll('[data-leg="gas"]').forEach(el => {
+    el.style.display = r.gas > 0 ? '' : 'none';
+  });
+  document.querySelectorAll('[data-leg="distill"]').forEach(el => {
+    el.style.display = r.distill > 0 ? '' : 'none';
+  });
+  // Show product toggle only in 1:1 mode
+  document.getElementById('product_toggle_wrapper').style.display = ratioKey === '111' ? '' : 'none';
+}
 
 function setSystem(s){
   system = s;
@@ -308,7 +380,25 @@ function setSystem(s){
   document.getElementById('crude_spec_label').textContent = d.name+' 規格';
   document.getElementById('crude_min_label').textContent  = d.name+' 最小手數';
   document.getElementById('crude_price_label').textContent = d.name+' 價格';
-  document.getElementById('crude_leg_label').textContent = d.name;
+  calc();
+}
+
+function setRatio(key){
+  ratioKey = key;
+  const r = ratios[key];
+  document.getElementById('page_title').textContent = r.label+' 裂解價差試算';
+  document.getElementById('page_subtitle').textContent = r.label+' Crack Spread Calculator';
+  document.getElementById('ratio_hint').textContent = r.desc;
+  document.getElementById('base_lots_hint').textContent = '組（1 組 = '+r.label+'）';
+  applyLegVisibility();
+  calc();
+}
+
+function setProduct(p){
+  oneProduct = p;
+  document.getElementById('btn_product_gas').className     = 'toggle-btn'+(p==='gas'?' active crack-long':'');
+  document.getElementById('btn_product_distill').className = 'toggle-btn'+(p==='distill'?' active crack-long':'');
+  applyLegVisibility();
   calc();
 }
 
@@ -364,20 +454,19 @@ function calc(){
   const gas_dir     = direction==='long' ? 'long'  : 'short';
   const distill_dir = direction==='long' ? 'long'  : 'short';
 
-  // Raw lot ratios (3:2:1)
-  const crude_raw   = base * 3;
-  const gas_raw     = base * 2;
-  const distill_raw = base * 1;
+  // Get current effective ratio (handles 1:1 product selection)
+  const r = effectiveRatio();
+  const totalCrude = r.crude;
 
-  // Snap to min lot (align to exposure of the raw theoretical lots)
-  const crude_target_exp = crude_raw * crude_spec * crude_p;
-  const gas_target_exp   = gas_raw * gas_spec * (gas_p*42);       // convert to per-barrel USD via 42
-  const distill_target_exp = distill_raw * distill_spec * (distill_p*42);
+  // Raw lot ratios based on selected ratio
+  const crude_raw   = base * r.crude;
+  const gas_raw     = base * r.gas;
+  const distill_raw = base * r.distill;
 
-  // For snapping: use own price (USD/barrel for crude, USD/gallon for products, but exposure math consistent)
-  const crude_lots = snapLots(crude_raw, crude_min, crude_spec, crude_p, crude_raw*crude_spec*crude_p);
-  const gas_lots   = snapLots(gas_raw, gas_min, gas_spec, gas_p, gas_raw*gas_spec*gas_p);
-  const distill_lots = snapLots(distill_raw, distill_min, distill_spec, distill_p, distill_raw*distill_spec*distill_p);
+  // Snap to min lot (skip legs with 0 ratio)
+  const crude_lots = crude_raw > 0 ? snapLots(crude_raw, crude_min, crude_spec, crude_p, crude_raw*crude_spec*crude_p) : 0;
+  const gas_lots   = gas_raw > 0   ? snapLots(gas_raw, gas_min, gas_spec, gas_p, gas_raw*gas_spec*gas_p) : 0;
+  const distill_lots = distill_raw > 0 ? snapLots(distill_raw, distill_min, distill_spec, distill_p, distill_raw*distill_spec*distill_p) : 0;
 
   // Exposures (in USD)
   const crude_exposure   = crude_lots * crude_spec * crude_p;
@@ -387,8 +476,9 @@ function calc(){
   const exposure_diff = products_exposure - crude_exposure;
 
   // Current crack spread (USD/barrel)
-  // Convert gas & distillate to USD/barrel: × 42
-  const current_crack = (2*gas_p*42 + 1*distill_p*42)/3 - crude_p;
+  // Formula: crack = (gas_mult*gas*42 + distill_mult*distill*42) / crude_mult - crude
+  const products_per_barrel = (r.gas * gas_p * 42 + r.distill * distill_p * 42) / r.crude;
+  const current_crack = products_per_barrel - crude_p;
 
   // Lots display
   document.getElementById('crude_lots').textContent   = fmt(crude_lots, decOf(crude_min))+' 手';
@@ -399,6 +489,11 @@ function calc(){
   const diffEl = document.getElementById('exposure_diff');
   diffEl.textContent = pnlStr(exposure_diff)+' USD';
   diffEl.className = 'mval '+pnlClass(exposure_diff);
+
+  // Update lot labels to show current multipliers
+  document.querySelector('#crude_lots').parentElement.querySelector('.mlabel').textContent = defaults[system].name+'手數（'+r.crude+' 倍）';
+  document.querySelector('#gas_lots').parentElement.querySelector('.mlabel').textContent = '汽油手數（'+r.gas+' 倍）';
+  document.querySelector('#distill_lots').parentElement.querySelector('.mlabel').textContent = '蒸餾油手數（'+r.distill+' 倍）';
 
   // Current crack badge
   const crackEl = document.getElementById('current_crack');
@@ -419,13 +514,11 @@ function calc(){
   });
 
   // How much the crack needs to move
-  // Crack formula: crack = (2*gas*42 + 1*distill*42)/3 - crude
-  // So to change crack by +Δ:
+  // Crack = (gm*gas*42 + dm*distill*42)/cm - crude
+  // To change crack by +Δ:
   //   - Crude-only:      crude change by -Δ
-  //   - Products-only:   need (2*Δgas*42 + 1*Δdistill*42)/3 = Δ
-  //                      if Δgas_barrel = Δdistill_barrel = Δ, then avg = Δ ✓
-  //                      so each product must change by Δ USD/barrel, i.e. Δ/42 USD/gallon
-  //   - Half & half:     crude by -Δ/2, products each by Δ/2 USD/barrel (Δ/84 USD/gal)
+  //   - Products-only:   products (each in USD/barrel) change by Δ, i.e. Δ/42 USD/gallon
+  //   - Half & half:     crude by -Δ/2, products by Δ/2 (USD/barrel)
   const delta = target - current_crack;
 
   // Scenario A: only crude moves
@@ -460,19 +553,20 @@ function calc(){
     document.getElementById(prefix+'_distill_pnl').textContent   = pnlStr(dPnl);
     document.getElementById(prefix+'_total').textContent = pnlStr(total);
 
+    // Update per-scenario summary card
+    document.getElementById('summary_'+prefix).textContent = pnlStr(total)+' USD';
+    document.getElementById('card_'+prefix).className = 'metric '+pnlClass(total);
+
     return total;
   }
 
-  const totalA = runScenario('a', a_crude_exit, a_gas_exit, a_distill_exit);
+  runScenario('a', a_crude_exit, a_gas_exit, a_distill_exit);
   runScenario('b', b_crude_exit, b_gas_exit, b_distill_exit);
   runScenario('c', c_crude_exit, c_gas_exit, c_distill_exit);
-
-  // Unified total (all scenarios yield the same result by arb design)
-  document.getElementById('summary_total').textContent = pnlStr(totalA)+' USD';
-  document.getElementById('card_total').className = 'metric '+pnlClass(totalA);
 }
 
 calc();
+setRatio('321');
 </script>
 </body>
 </html>

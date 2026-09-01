@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3:2:1 裂解價差試算</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,'PingFang TC','Microsoft JhengHei',sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh;padding:2rem 1rem}
+  h1{font-size:20px;font-weight:600;margin-bottom:4px;color:#1a1a1a}
+  .subtitle{font-size:13px;color:#888;margin-bottom:24px}
+  .container{max-width:720px;margin:0 auto}
+  .card{background:#fff;border:1px solid #e8e6e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px}
+  .section-title{font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px}
+  .row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .row label{font-size:14px;color:#555;min-width:110px;flex-shrink:0}
+  .row input[type=number]{width:130px;padding:7px 10px;font-size:14px;border:1px solid #ddd;border-radius:7px;outline:none;background:#fafafa;transition:border .15s;font-family:inherit}
+  .row input[type=number]:focus{border-color:#b0a890;background:#fff}
+  .row span.unit{font-size:13px;color:#aaa}
+  .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 16px}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+
+  /* In three-col layout, use grid rows so each column's label/input/unit align */
+  .three-col .row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;margin-bottom:10px}
+  .three-col .row label{min-width:0;font-size:13px;color:#555;white-space:nowrap}
+  .three-col .row input[type=number]{width:100%;min-width:0;padding:7px 10px;font-size:14px;border:1px solid #ddd;border-radius:7px;outline:none;background:#fafafa;font-family:inherit}
+  .three-col .row input[type=number]:focus{border-color:#b0a890;background:#fff}
+  .three-col .row span.unit{font-size:12px;color:#aaa;white-space:nowrap}
+
+  /* Same alignment treatment for two-col */
+  .two-col .row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;margin-bottom:10px}
+  .two-col .row label{min-width:0;font-size:13px;color:#555;white-space:nowrap}
+  .two-col .row input[type=number]{width:100%;min-width:0;padding:7px 10px;font-size:14px;border:1px solid #ddd;border-radius:7px;outline:none;background:#fafafa;font-family:inherit}
+  .two-col .row input[type=number]:focus{border-color:#b0a890;background:#fff}
+  .two-col .row span.unit{font-size:12px;color:#aaa;white-space:nowrap}
+
+  .toggle-group{display:flex;border:1px solid #ddd;border-radius:8px;overflow:hidden;width:fit-content}
+  .toggle-btn{padding:8px 22px;font-size:14px;cursor:pointer;background:transparent;border:none;color:#888;font-family:inherit;transition:background .15s,color .15s}
+  .toggle-btn.active.wti{background:#f7e6dc;color:#8a4a1a}
+  .toggle-btn.active.brent{background:#dce8f7;color:#1a4a8a}
+  .toggle-btn.active.crack-long{background:#ddf0e2;color:#1e6e3a}
+  .toggle-btn.active.crack-short{background:#f7dfd9;color:#8a2818}
+  .toggle-btn:not(.active):hover{background:#f5f4f0}
+  .toggle-divider{width:1px;background:#ddd;flex-shrink:0}
+  .direction-hint{font-size:12px;color:#aaa;margin-top:8px}
+  .long{color:#2d7d46;font-weight:600}
+  .short{color:#c0392b;font-weight:600}
+
+  .crack-badge{display:inline-flex;align-items:center;gap:8px;background:#f5f4f0;border:1px solid #e0ddd4;border-radius:8px;padding:7px 16px;font-size:14px;color:#666;margin-bottom:16px}
+  .crack-badge .val{font-size:22px;font-weight:600;color:#1a1a1a}
+  .crack-badge .val.pos{color:#2d7d46}
+  .crack-badge .val.neg{color:#c0392b}
+
+  .result-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px}
+  .metric{background:#f8f7f3;border-radius:8px;padding:12px 14px}
+  .metric .mlabel{font-size:11px;color:#999;margin:0 0 4px}
+  .metric .mval{font-size:16px;font-weight:600;color:#1a1a1a;margin:0}
+  .metric.pos .mval{color:#2d7d46}
+  .metric.neg .mval{color:#c0392b}
+
+  table.detail{width:100%;font-size:13px;border-collapse:collapse;margin-top:4px}
+  table.detail th{color:#aaa;font-weight:400;text-align:right;padding:5px 6px;border-bottom:1px solid #f0ede6}
+  table.detail th:first-child{text-align:left}
+  table.detail td{text-align:right;padding:5px 6px;color:#1a1a1a}
+  table.detail td:first-child{text-align:left;color:#666}
+  table.detail tr{border-bottom:1px solid #f5f3ee}
+  table.detail tr:last-child{border-bottom:none}
+  .highlight-row td{font-weight:600;color:#1a1a1a !important;background:#f8f7f3}
+
+  .scenario-header{font-size:13px;font-weight:500;color:#777;margin:14px 0 8px;padding-left:2px}
+  .divider{height:1px;background:#f0ede6;margin:14px 0}
+  .footer{text-align:center;font-size:12px;color:#ccc;margin-top:24px}
+
+  @media (max-width:600px){
+    body{padding:1.25rem .75rem}
+    h1{font-size:18px}
+    .subtitle{font-size:12px;margin-bottom:18px}
+    .card{padding:.85rem 1rem;margin-bottom:10px}
+    .three-col,.two-col{grid-template-columns:1fr;gap:0}
+    .result-grid{grid-template-columns:1fr}
+    .row{gap:6px;flex-wrap:nowrap}
+    .row label{min-width:0;flex:0 0 auto;font-size:13px;width:auto}
+    .row input[type=number]{flex:1;width:auto;min-width:0;font-size:15px}
+    .row span.unit{white-space:nowrap;font-size:12px;flex-shrink:0}
+    .toggle-btn{padding:8px 16px;font-size:13px}
+    .crack-badge{padding:6px 12px;font-size:13px}
+    .crack-badge .val{font-size:19px}
+    .metric{padding:10px 12px}
+    .metric .mval{font-size:15px}
+    table.detail{font-size:12px}
+    table.detail th,table.detail td{padding:5px 4px}
+    .scenario-header{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>3:2:1 裂解價差試算</h1>
+  <p class="subtitle">3:2:1 Crack Spread Calculator</p>
+
+  <div class="card">
+    <p class="section-title">原油體系</p>
+    <div class="toggle-group">
+      <button class="toggle-btn active wti" id="btn_wti" onclick="setSystem('wti')">WTI</button>
+      <div class="toggle-divider"></div>
+      <button class="toggle-btn brent" id="btn_brent" onclick="setSystem('brent')">Brent</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">交易方向</p>
+    <div class="toggle-group">
+      <button class="toggle-btn active crack-short" id="btn_short" onclick="setDir('short')">預期裂解價差縮小</button>
+      <div class="toggle-divider"></div>
+      <button class="toggle-btn crack-long" id="btn_long" onclick="setDir('long')">預期裂解價差擴大</button>
+    </div>
+    <p class="direction-hint" id="dir_hint"></p>
+  </div>
+
+  <div class="card">
+    <p class="section-title">合約規格</p>
+    <div class="three-col">
+      <div>
+        <div class="row">
+          <label id="crude_spec_label">WTI 規格</label>
+          <input type="number" id="crude_spec" value="1000" step="1" min="1">
+          <span class="unit">桶/手</span>
+        </div>
+        <div class="row">
+          <label id="crude_min_label">WTI 最小手數</label>
+          <input type="number" id="crude_min_lot" value="0.01" step="0.01" min="0.01">
+          <span class="unit">手</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label>汽油規格</label>
+          <input type="number" id="gas_spec" value="42000" step="1" min="1">
+          <span class="unit">加侖/手</span>
+        </div>
+        <div class="row">
+          <label>汽油最小手數</label>
+          <input type="number" id="gas_min_lot" value="0.01" step="0.01" min="0.01">
+          <span class="unit">手</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label>蒸餾油規格</label>
+          <input type="number" id="distill_spec" value="42000" step="1" min="1">
+          <span class="unit">加侖/手</span>
+        </div>
+        <div class="row">
+          <label>蒸餾油最小手數</label>
+          <input type="number" id="distill_min_lot" value="0.01" step="0.01" min="0.01">
+          <span class="unit">手</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">可調參數</p>
+    <div class="three-col">
+      <div>
+        <div class="row">
+          <label id="crude_price_label">WTI 價格</label>
+          <input type="number" id="crude_price" value="86.5" step="0.01" min="0.01">
+          <span class="unit">USD/桶</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label>汽油價格</label>
+          <input type="number" id="gas_price" value="3.1151" step="0.0001" min="0.0001">
+          <span class="unit">USD/加侖</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label>蒸餾油價格</label>
+          <input type="number" id="distill_price" value="4.4399" step="0.0001" min="0.0001">
+          <span class="unit">USD/加侖</span>
+        </div>
+      </div>
+    </div>
+    <div class="two-col" style="margin-top:6px">
+      <div>
+        <div class="row">
+          <label>基準組數</label>
+          <input type="number" id="base_lots" value="0.01" step="0.01" min="0.01">
+          <span class="unit">組（1 組 = 3:2:1）</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label>目標裂解價差</label>
+          <input type="number" id="target_crack" value="45" step="0.1">
+          <span class="unit">USD/桶</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">目前市場狀態</p>
+    <div class="crack-badge">
+      目前裂解價差：<span class="val" id="current_crack">—</span> USD/桶
+    </div>
+    <div class="result-grid">
+      <div class="metric">
+        <p class="mlabel">原油手數（3 倍）</p>
+        <p class="mval" id="crude_lots">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">汽油手數（2 倍）</p>
+        <p class="mval" id="gas_lots">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">蒸餾油手數（1 倍）</p>
+        <p class="mval" id="distill_lots">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">原油曝險</p>
+        <p class="mval" id="crude_exposure">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">成品油曝險</p>
+        <p class="mval" id="products_exposure">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">曝險誤差</p>
+        <p class="mval" id="exposure_diff">—</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">預期損益試算</p>
+
+    <div class="metric" id="card_total" style="margin-bottom:6px">
+      <p class="mlabel">預期總損益（三情境合計相同，為套利部位特性）</p>
+      <p class="mval" id="summary_total">—</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <p class="scenario-header">情境 A：原油變動、成品油不動</p>
+    <table class="detail">
+      <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (USD)</th></tr></thead>
+      <tbody>
+        <tr><td id="a_crude_label">原油</td><td id="a_crude_entry">—</td><td id="a_crude_exit">—</td><td id="a_crude_pnl">—</td></tr>
+        <tr><td id="a_gas_label">汽油</td><td id="a_gas_entry">—</td><td id="a_gas_exit">—</td><td id="a_gas_pnl">—</td></tr>
+        <tr><td id="a_distill_label">蒸餾油</td><td id="a_distill_entry">—</td><td id="a_distill_exit">—</td><td id="a_distill_pnl">—</td></tr>
+        <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="a_total">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+
+    <p class="scenario-header">情境 B：成品油變動、原油不動</p>
+    <table class="detail">
+      <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (USD)</th></tr></thead>
+      <tbody>
+        <tr><td id="b_crude_label">原油</td><td id="b_crude_entry">—</td><td id="b_crude_exit">—</td><td id="b_crude_pnl">—</td></tr>
+        <tr><td id="b_gas_label">汽油</td><td id="b_gas_entry">—</td><td id="b_gas_exit">—</td><td id="b_gas_pnl">—</td></tr>
+        <tr><td id="b_distill_label">蒸餾油</td><td id="b_distill_entry">—</td><td id="b_distill_exit">—</td><td id="b_distill_pnl">—</td></tr>
+        <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="b_total">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+
+    <p class="scenario-header">情境 C：各半承擔（原油與成品油同時變動）</p>
+    <table class="detail">
+      <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (USD)</th></tr></thead>
+      <tbody>
+        <tr><td id="c_crude_label">原油</td><td id="c_crude_entry">—</td><td id="c_crude_exit">—</td><td id="c_crude_pnl">—</td></tr>
+        <tr><td id="c_gas_label">汽油</td><td id="c_gas_entry">—</td><td id="c_gas_exit">—</td><td id="c_gas_pnl">—</td></tr>
+        <tr><td id="c_distill_label">蒸餾油</td><td id="c_distill_entry">—</td><td id="c_distill_exit">—</td><td id="c_distill_pnl">—</td></tr>
+        <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="c_total">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="footer">3:2:1 裂解價差試算 · 僅供參考，不構成投資建議</p>
+</div>
+
+<script>
+let system = 'wti';
+let direction = 'short';
+
+// Default prices for each system
+const defaults = {
+  wti:   { crude:86.5,  gas:3.1151, distill:4.4399, name:'WTI' },
+  brent: { crude:88,    gas:3.1151, distill:4.4399, name:'Brent' }
+};
+
+function setSystem(s){
+  system = s;
+  document.getElementById('btn_wti').className   = 'toggle-btn'+(s==='wti'?' active wti':'');
+  document.getElementById('btn_brent').className = 'toggle-btn'+(s==='brent'?' active brent':'');
+
+  const d = defaults[s];
+  document.getElementById('crude_price').value = d.crude;
+  document.getElementById('gas_price').value   = d.gas;
+  document.getElementById('distill_price').value = d.distill;
+  document.getElementById('crude_spec_label').textContent = d.name+' 規格';
+  document.getElementById('crude_min_label').textContent  = d.name+' 最小手數';
+  document.getElementById('crude_price_label').textContent = d.name+' 價格';
+  document.getElementById('crude_leg_label').textContent = d.name;
+  calc();
+}
+
+function setDir(d){
+  direction = d;
+  document.getElementById('btn_long').className  = 'toggle-btn'+(d==='long'?' active crack-long':'');
+  document.getElementById('btn_short').className = 'toggle-btn'+(d==='short'?' active crack-short':'');
+  calc();
+}
+
+['crude_price','gas_price','distill_price','base_lots','target_crack',
+ 'crude_spec','gas_spec','distill_spec','crude_min_lot','gas_min_lot','distill_min_lot']
+  .forEach(id => document.getElementById(id).addEventListener('input', calc));
+
+function fmt(n, dec=2){ return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+function pnlClass(n){ return n>0?'pos':n<0?'neg':''; }
+function pnlStr(n){ return (n>0?'+':'')+fmt(n); }
+function pnl(dir, entry, exit, lots, spec){
+  return dir==='long' ? (exit-entry)*lots*spec : (entry-exit)*lots*spec;
+}
+function snapLots(raw_lots, min_lot, spec, price, target_exposure){
+  const steps = Math.floor(raw_lots/min_lot);
+  const floor_lots = parseFloat((steps*min_lot).toFixed(10));
+  const ceil_lots  = parseFloat(((steps+1)*min_lot).toFixed(10));
+  const diff_f = Math.abs(floor_lots*spec*price - target_exposure);
+  const diff_c = Math.abs(ceil_lots*spec*price  - target_exposure);
+  return diff_f <= diff_c ? floor_lots : ceil_lots;
+}
+function decOf(n){ const s=n.toString(); const d=s.indexOf('.'); return d===-1?0:s.length-d-1; }
+
+function calc(){
+  const crude_p   = parseFloat(document.getElementById('crude_price').value)||0;
+  const gas_p     = parseFloat(document.getElementById('gas_price').value)||0;
+  const distill_p = parseFloat(document.getElementById('distill_price').value)||0;
+  const base      = parseFloat(document.getElementById('base_lots').value)||0;
+  const target    = parseFloat(document.getElementById('target_crack').value);
+  const crude_spec   = parseFloat(document.getElementById('crude_spec').value)||0;
+  const gas_spec     = parseFloat(document.getElementById('gas_spec').value)||0;
+  const distill_spec = parseFloat(document.getElementById('distill_spec').value)||0;
+  const crude_min   = parseFloat(document.getElementById('crude_min_lot').value)||0;
+  const gas_min     = parseFloat(document.getElementById('gas_min_lot').value)||0;
+  const distill_min = parseFloat(document.getElementById('distill_min_lot').value)||0;
+
+  if(!crude_p||!gas_p||!distill_p||!base||isNaN(target)||
+     !crude_spec||!gas_spec||!distill_spec||!crude_min||!gas_min||!distill_min) return;
+
+  // Direction hint
+  document.getElementById('dir_hint').innerHTML = direction==='long'
+    ? '預期裂解價差擴大：<span class="short">空原油</span>　<span class="long">多汽油</span>　<span class="long">多蒸餾油</span>'
+    : '預期裂解價差縮小：<span class="long">多原油</span>　<span class="short">空汽油</span>　<span class="short">空蒸餾油</span>';
+
+  const crude_dir   = direction==='long' ? 'short' : 'long';
+  const gas_dir     = direction==='long' ? 'long'  : 'short';
+  const distill_dir = direction==='long' ? 'long'  : 'short';
+
+  // Raw lot ratios (3:2:1)
+  const crude_raw   = base * 3;
+  const gas_raw     = base * 2;
+  const distill_raw = base * 1;
+
+  // Snap to min lot (align to exposure of the raw theoretical lots)
+  const crude_target_exp = crude_raw * crude_spec * crude_p;
+  const gas_target_exp   = gas_raw * gas_spec * (gas_p*42);       // convert to per-barrel USD via 42
+  const distill_target_exp = distill_raw * distill_spec * (distill_p*42);
+
+  // For snapping: use own price (USD/barrel for crude, USD/gallon for products, but exposure math consistent)
+  const crude_lots = snapLots(crude_raw, crude_min, crude_spec, crude_p, crude_raw*crude_spec*crude_p);
+  const gas_lots   = snapLots(gas_raw, gas_min, gas_spec, gas_p, gas_raw*gas_spec*gas_p);
+  const distill_lots = snapLots(distill_raw, distill_min, distill_spec, distill_p, distill_raw*distill_spec*distill_p);
+
+  // Exposures (in USD)
+  const crude_exposure   = crude_lots * crude_spec * crude_p;
+  const gas_exposure     = gas_lots * gas_spec * gas_p;
+  const distill_exposure = distill_lots * distill_spec * distill_p;
+  const products_exposure = gas_exposure + distill_exposure;
+  const exposure_diff = products_exposure - crude_exposure;
+
+  // Current crack spread (USD/barrel)
+  // Convert gas & distillate to USD/barrel: × 42
+  const current_crack = (2*gas_p*42 + 1*distill_p*42)/3 - crude_p;
+
+  // Lots display
+  document.getElementById('crude_lots').textContent   = fmt(crude_lots, decOf(crude_min))+' 手';
+  document.getElementById('gas_lots').textContent     = fmt(gas_lots, decOf(gas_min))+' 手';
+  document.getElementById('distill_lots').textContent = fmt(distill_lots, decOf(distill_min))+' 手';
+  document.getElementById('crude_exposure').textContent   = '$'+fmt(crude_exposure,0);
+  document.getElementById('products_exposure').textContent = '$'+fmt(products_exposure,0);
+  const diffEl = document.getElementById('exposure_diff');
+  diffEl.textContent = pnlStr(exposure_diff)+' USD';
+  diffEl.className = 'mval '+pnlClass(exposure_diff);
+
+  // Current crack badge
+  const crackEl = document.getElementById('current_crack');
+  crackEl.textContent = fmt(current_crack, 2);
+  crackEl.className = 'val '+pnlClass(current_crack);
+
+  // Leg labels (shared across scenarios)
+  const crude_lbl   = (crude_dir==='long'?'（做多）':'（做空）');
+  const gas_lbl     = (gas_dir==='long'?'（做多）':'（做空）');
+  const distill_lbl = (distill_dir==='long'?'（做多）':'（做空）');
+  const crude_name = defaults[system].name+crude_lbl;
+  const gas_name   = '汽油'+gas_lbl;
+  const distill_name = '蒸餾油'+distill_lbl;
+  ['a','b','c'].forEach(s=>{
+    document.getElementById(s+'_crude_label').textContent   = crude_name;
+    document.getElementById(s+'_gas_label').textContent     = gas_name;
+    document.getElementById(s+'_distill_label').textContent = distill_name;
+  });
+
+  // How much the crack needs to move
+  // Crack formula: crack = (2*gas*42 + 1*distill*42)/3 - crude
+  // So to change crack by +Δ:
+  //   - Crude-only:      crude change by -Δ
+  //   - Products-only:   need (2*Δgas*42 + 1*Δdistill*42)/3 = Δ
+  //                      if Δgas_barrel = Δdistill_barrel = Δ, then avg = Δ ✓
+  //                      so each product must change by Δ USD/barrel, i.e. Δ/42 USD/gallon
+  //   - Half & half:     crude by -Δ/2, products each by Δ/2 USD/barrel (Δ/84 USD/gal)
+  const delta = target - current_crack;
+
+  // Scenario A: only crude moves
+  const a_crude_exit   = crude_p - delta;
+  const a_gas_exit     = gas_p;
+  const a_distill_exit = distill_p;
+
+  // Scenario B: only products move (both by Δ USD/barrel = Δ/42 USD/gallon)
+  const b_crude_exit   = crude_p;
+  const b_gas_exit     = gas_p + delta/42;
+  const b_distill_exit = distill_p + delta/42;
+
+  // Scenario C: half & half
+  const c_crude_exit   = crude_p - delta/2;
+  const c_gas_exit     = gas_p + (delta/2)/42;
+  const c_distill_exit = distill_p + (delta/2)/42;
+
+  function runScenario(prefix, cE, gE, dE){
+    const cPnl = pnl(crude_dir, crude_p, cE, crude_lots, crude_spec);
+    const gPnl = pnl(gas_dir, gas_p, gE, gas_lots, gas_spec);
+    const dPnl = pnl(distill_dir, distill_p, dE, distill_lots, distill_spec);
+    const total = cPnl + gPnl + dPnl;
+
+    document.getElementById(prefix+'_crude_entry').textContent = fmt(crude_p);
+    document.getElementById(prefix+'_crude_exit').textContent  = fmt(cE);
+    document.getElementById(prefix+'_crude_pnl').textContent   = pnlStr(cPnl);
+    document.getElementById(prefix+'_gas_entry').textContent = fmt(gas_p,4);
+    document.getElementById(prefix+'_gas_exit').textContent  = fmt(gE,4);
+    document.getElementById(prefix+'_gas_pnl').textContent   = pnlStr(gPnl);
+    document.getElementById(prefix+'_distill_entry').textContent = fmt(distill_p,4);
+    document.getElementById(prefix+'_distill_exit').textContent  = fmt(dE,4);
+    document.getElementById(prefix+'_distill_pnl').textContent   = pnlStr(dPnl);
+    document.getElementById(prefix+'_total').textContent = pnlStr(total);
+
+    return total;
+  }
+
+  const totalA = runScenario('a', a_crude_exit, a_gas_exit, a_distill_exit);
+  runScenario('b', b_crude_exit, b_gas_exit, b_distill_exit);
+  runScenario('c', c_crude_exit, c_gas_exit, c_distill_exit);
+
+  // Unified total (all scenarios yield the same result by arb design)
+  document.getElementById('summary_total').textContent = pnlStr(totalA)+' USD';
+  document.getElementById('card_total').className = 'metric '+pnlClass(totalA);
+}
+
+calc();
+</script>
+</body>
+</html>

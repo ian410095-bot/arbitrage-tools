@@ -126,6 +126,38 @@
       </div>
     </div>
 
+    <!-- 股票配對交易（已啟用） -->
+    <div class="card active" onclick="goTo('stock-pair')">
+      <div class="card-header">
+        <div>
+          <div class="card-title">股票配對交易</div>
+          <div class="card-subtitle">STOCK PAIR TRADING</div>
+        </div>
+        <div class="status-badge na" id="sp_status">待輸入</div>
+      </div>
+
+      <div class="metric-main">
+        <div class="label">目前比值 (A/B)</div>
+        <div class="value na" id="sp_ratio">—</div>
+      </div>
+
+      <div class="input-row" onclick="event.stopPropagation()">
+        <div class="input-group">
+          <label>國巨 2327</label>
+          <input type="number" id="sp_a" placeholder="339.5" step="0.1">
+        </div>
+        <div class="input-group">
+          <label>華新科 2492</label>
+          <input type="number" id="sp_b" placeholder="210" step="0.1">
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <span>進入計算器</span>
+        <span class="arrow">→</span>
+      </div>
+    </div>
+
     <!-- 油品裂解價差（已啟用） -->
     <div class="card active" onclick="goTo('crack-spread')">
       <div class="card-header">
@@ -241,6 +273,39 @@ function updateCrack(){
 csCrude.addEventListener('input', updateCrack);
 csGas.addEventListener('input', updateCrack);
 csDistill.addEventListener('input', updateCrack);
+
+// Stock pair ratio live calc
+const spA = document.getElementById('sp_a');
+const spB = document.getElementById('sp_b');
+const spRatioEl = document.getElementById('sp_ratio');
+const spStatusEl = document.getElementById('sp_status');
+
+function updateStockPair(){
+  const a = parseFloat(spA.value);
+  const b = parseFloat(spB.value);
+  if(!a || !b){
+    spRatioEl.textContent = '—';
+    spRatioEl.classList.add('na');
+    spStatusEl.textContent = '待輸入';
+    spStatusEl.className = 'status-badge na';
+    return;
+  }
+  const ratio = a / b;
+  spRatioEl.textContent = ratio.toFixed(3);
+  spRatioEl.classList.remove('na');
+
+  // Rough status thresholds for 國巨/華新科 ratio
+  // Fair range 1.8~2.1 per research; <1.5 or >2.4 = extreme
+  let cls, text;
+  if(ratio < 1.5 || ratio > 2.4){ cls='extreme'; text='極端'; }
+  else if(ratio < 1.8 || ratio > 2.1){ cls='deviated'; text='偏離'; }
+  else { cls='normal'; text='正常'; }
+  spStatusEl.textContent = text;
+  spStatusEl.className = 'status-badge '+cls;
+}
+
+spA.addEventListener('input', updateStockPair);
+spB.addEventListener('input', updateStockPair);
 </script>
 </body>
 </html>

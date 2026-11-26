@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>股票配對交易試算</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,'PingFang TC','Microsoft JhengHei',sans-serif;background:#f5f4f0;color:#1a1a1a;min-height:100vh;padding:2rem 1rem}
+  h1{font-size:20px;font-weight:600;margin-bottom:4px;color:#1a1a1a}
+  .subtitle{font-size:13px;color:#888;margin-bottom:24px}
+  .container{max-width:680px;margin:0 auto}
+  .card{background:#fff;border:1px solid #e8e6e0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px}
+  .section-title{font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px}
+  .row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .row label{font-size:14px;color:#555;min-width:110px;flex-shrink:0}
+  .row input[type=number],.row input[type=text]{width:130px;padding:7px 10px;font-size:14px;border:1px solid #ddd;border-radius:7px;outline:none;background:#fafafa;transition:border .15s;font-family:inherit}
+  .row input:focus{border-color:#b0a890;background:#fff}
+  .row span.unit{font-size:13px;color:#aaa}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  .ratio-badge{display:inline-flex;align-items:center;gap:8px;background:#f5f4f0;border:1px solid #e0ddd4;border-radius:8px;padding:7px 16px;font-size:14px;color:#666;margin-bottom:16px}
+  .ratio-badge .val{font-size:22px;font-weight:600;color:#1a1a1a}
+  .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+  .metric{background:#f8f7f3;border-radius:8px;padding:12px 14px}
+  .metric .mlabel{font-size:11px;color:#999;margin:0 0 4px}
+  .metric .mval{font-size:18px;font-weight:600;color:#1a1a1a;margin:0}
+  .metric.pos .mval{color:#2d7d46}
+  .metric.neg .mval{color:#c0392b}
+  .metric.neu .mval{color:#888}
+  .scenario-header{font-size:13px;font-weight:500;color:#777;margin:14px 0 8px;padding-left:2px}
+  table.detail{width:100%;font-size:13px;border-collapse:collapse}
+  table.detail th{color:#aaa;font-weight:400;text-align:right;padding:5px 6px;border-bottom:1px solid #f0ede6}
+  table.detail th:first-child{text-align:left}
+  table.detail td{text-align:right;padding:5px 6px;color:#1a1a1a}
+  table.detail td:first-child{text-align:left;color:#666}
+  table.detail tr{border-bottom:1px solid #f5f3ee}
+  table.detail tr:last-child{border-bottom:none}
+  .highlight-row td{font-weight:600;color:#1a1a1a !important;background:#f8f7f3}
+  .divider{height:1px;background:#f0ede6;margin:14px 0}
+  .toggle-group{display:flex;border:1px solid #ddd;border-radius:8px;overflow:hidden;width:fit-content}
+  .toggle-btn{padding:8px 22px;font-size:14px;cursor:pointer;background:transparent;border:none;color:#888;font-family:inherit;transition:background .15s,color .15s}
+  .toggle-btn.active.widen{background:#ddeaf8;color:#1a5fa8;font-weight:500}
+  .toggle-btn.active.narrow{background:#ddf0e2;color:#1e6e3a;font-weight:500}
+  .toggle-btn:not(.active):hover{background:#f5f4f0}
+  .toggle-divider{width:1px;background:#ddd;flex-shrink:0}
+  .direction-hint{font-size:12px;color:#aaa;margin-top:8px}
+  .long{color:#2d7d46;font-weight:600}
+  .short{color:#c0392b;font-weight:600}
+  .footer{text-align:center;font-size:12px;color:#ccc;margin-top:24px}
+
+  @media (max-width:600px){
+    body{padding:1.25rem .75rem}
+    h1{font-size:18px}
+    .subtitle{font-size:12px;margin-bottom:18px}
+    .card{padding:.85rem 1rem;margin-bottom:10px}
+    .two-col{grid-template-columns:1fr;gap:0}
+    .row{gap:6px;flex-wrap:nowrap}
+    .row label{min-width:0;flex:0 0 auto;font-size:13px;width:auto}
+    .row input[type=number],.row input[type=text]{flex:1;width:auto;min-width:0;font-size:15px}
+    .row span.unit{white-space:nowrap;font-size:12px;flex-shrink:0}
+    .toggle-btn{padding:8px 16px;font-size:13px}
+    .ratio-badge{padding:6px 12px;font-size:13px}
+    .ratio-badge .val{font-size:19px}
+    .metric{padding:10px 12px}
+    .metric .mval{font-size:16px}
+    table.detail{font-size:12px}
+    table.detail th,table.detail td{padding:5px 4px}
+    .scenario-header{font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>股票配對交易試算</h1>
+  <p class="subtitle">Stock Pair Trading Calculator</p>
+
+  <div class="card">
+    <p class="section-title">配對標的</p>
+    <div class="two-col">
+      <div>
+        <div class="row">
+          <label>標的 A 名稱</label>
+          <input type="text" id="a_name" value="國巨">
+        </div>
+        <div class="row">
+          <label>標的 A 代碼</label>
+          <input type="text" id="a_code" value="2327">
+        </div>
+        <div class="row">
+          <label>標的 A 工具</label>
+          <div class="toggle-group" style="margin-left:0">
+            <button class="toggle-btn active widen" id="btn_a_spot" onclick="setInstr('a','spot')">現貨</button>
+            <div class="toggle-divider"></div>
+            <button class="toggle-btn narrow" id="btn_a_fut" onclick="setInstr('a','fut')">期貨</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label>標的 B 名稱</label>
+          <input type="text" id="b_name" value="華新科">
+        </div>
+        <div class="row">
+          <label>標的 B 代碼</label>
+          <input type="text" id="b_code" value="2492">
+        </div>
+        <div class="row">
+          <label>標的 B 工具</label>
+          <div class="toggle-group" style="margin-left:0">
+            <button class="toggle-btn active widen" id="btn_b_spot" onclick="setInstr('b','spot')">現貨</button>
+            <div class="toggle-divider"></div>
+            <button class="toggle-btn narrow" id="btn_b_fut" onclick="setInstr('b','fut')">期貨</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">交易方向</p>
+    <div class="toggle-group">
+      <button class="toggle-btn active widen" id="btn_widen" onclick="setDir('widen')">預期比值縮小</button>
+      <div class="toggle-divider"></div>
+      <button class="toggle-btn narrow" id="btn_narrow" onclick="setDir('narrow')">預期比值擴大</button>
+    </div>
+    <p class="direction-hint" id="dir_hint"></p>
+  </div>
+
+  <div class="card">
+    <p class="section-title">合約規格</p>
+    <div class="two-col">
+      <div>
+        <div class="row">
+          <label id="a_spec_label">A 規格</label>
+          <input type="number" id="a_spec" value="1000" step="1" min="1">
+          <span class="unit" id="a_spec_unit">股/張</span>
+        </div>
+        <div class="row">
+          <label id="a_min_label">A 最小張數</label>
+          <input type="number" id="a_min_lot" value="1" step="0.001" min="0.001">
+          <span class="unit" id="a_min_unit">張</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label id="b_spec_label">B 規格</label>
+          <input type="number" id="b_spec" value="1000" step="1" min="1">
+          <span class="unit" id="b_spec_unit">股/張</span>
+        </div>
+        <div class="row">
+          <label id="b_min_label">B 最小張數</label>
+          <input type="number" id="b_min_lot" value="1" step="0.001" min="0.001">
+          <span class="unit" id="b_min_unit">張</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">可調參數</p>
+    <div class="two-col">
+      <div>
+        <div class="row">
+          <label id="a_price_label">A 股價</label>
+          <input type="number" id="a_price" value="339.5" step="0.1" min="0.01">
+          <span class="unit">TWD</span>
+        </div>
+        <div class="row">
+          <label id="a_lots_label">A 張數</label>
+          <input type="number" id="a_lots" value="1" step="1" min="1">
+          <span class="unit" id="a_lots_unit">張</span>
+        </div>
+      </div>
+      <div>
+        <div class="row">
+          <label id="b_price_label">B 股價</label>
+          <input type="number" id="b_price" value="210" step="0.1" min="0.01">
+          <span class="unit">TWD</span>
+        </div>
+        <div class="row">
+          <label>目標比值</label>
+          <input type="number" id="target_ratio" value="1.95" step="0.01" min="0.01">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">目前市場狀態</p>
+    <div class="ratio-badge">
+      目前比值 (A/B)：<span class="val" id="current_ratio">—</span>
+    </div>
+    <div class="result-grid">
+      <div class="metric">
+        <p class="mlabel" id="a_exposure_label">A 曝險</p>
+        <p class="mval" id="a_exposure">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel" id="b_hedge_label">B 對沖張數</p>
+        <p class="mval" id="b_lots">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel" id="b_exposure_label">B 曝險</p>
+        <p class="mval" id="b_exposure">—</p>
+      </div>
+      <div class="metric">
+        <p class="mlabel">曝險誤差</p>
+        <p class="mval" id="exposure_diff">—</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">預期損益試算</p>
+
+    <p class="scenario-header" id="a_scenario_header">情境 A：A 不動，B 變動至目標比值</p>
+    <table class="detail">
+      <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (TWD)</th></tr></thead>
+      <tbody>
+        <tr><td id="a_b_label">B</td><td id="a_b_entry">—</td><td id="a_b_exit">—</td><td id="a_b_pnl">—</td></tr>
+        <tr><td id="a_a_label">A</td><td id="a_a_entry">—</td><td id="a_a_exit">—</td><td id="a_a_pnl">—</td></tr>
+        <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="a_total">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+
+    <p class="scenario-header" id="b_scenario_header">情境 B：B 不動，A 變動至目標比值</p>
+    <table class="detail">
+      <thead><tr><th></th><th>現價</th><th>預期價格</th><th>損益 (TWD)</th></tr></thead>
+      <tbody>
+        <tr><td id="b_b_label">B</td><td id="b_b_entry">—</td><td id="b_b_exit">—</td><td id="b_b_pnl">—</td></tr>
+        <tr><td id="b_a_label">A</td><td id="b_a_entry">—</td><td id="b_a_exit">—</td><td id="b_a_pnl">—</td></tr>
+        <tr class="highlight-row"><td>合計</td><td></td><td></td><td id="b_total">—</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+    <div class="result-grid" style="margin-top:8px">
+      <div class="metric" id="card_a">
+        <p class="mlabel">情境 A 總損益</p>
+        <p class="mval" id="summary_a">—</p>
+      </div>
+      <div class="metric" id="card_b">
+        <p class="mlabel">情境 B 總損益</p>
+        <p class="mval" id="summary_b">—</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer">股票配對交易試算 · 僅供參考，不構成投資建議</p>
+</div>
+
+<script>
+let direction = 'widen';
+let instr = { a:'spot', b:'spot' };  // 'spot' or 'fut'
+
+// Default specs per instrument type (股/張 or 股/口)
+const specDefaults = {
+  spot: { spec:1000, minLot:1,    unitName:'張', specUnit:'股/張' },
+  fut:  { spec:2000, minLot:1,    unitName:'口', specUnit:'股/口' }
+};
+
+function setDir(d){
+  direction = d;
+  document.getElementById('btn_widen').className = 'toggle-btn'+(d==='widen'?' active widen':'');
+  document.getElementById('btn_narrow').className = 'toggle-btn'+(d==='narrow'?' active narrow':'');
+  calc();
+}
+
+function setInstr(leg, type){
+  instr[leg] = type;
+  // Update button styling
+  document.getElementById('btn_'+leg+'_spot').className = 'toggle-btn'+(type==='spot'?' active widen':'');
+  document.getElementById('btn_'+leg+'_fut').className  = 'toggle-btn'+(type==='fut'?' active narrow':'');
+  // Update default spec & min lot for this leg
+  const d = specDefaults[type];
+  document.getElementById(leg+'_spec').value    = d.spec;
+  document.getElementById(leg+'_min_lot').value = d.minLot;
+  // Update unit labels (股/張 ↔ 股/口, 張 ↔ 口)
+  updateLabels();
+  calc();
+}
+
+// Name inputs — update labels dynamically
+['a_name','a_code','b_name','b_code'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateLabels);
+});
+
+// Numeric inputs — trigger recalc
+['a_price','b_price','a_lots','target_ratio','a_spec','b_spec','a_min_lot','b_min_lot']
+  .forEach(id => document.getElementById(id).addEventListener('input', calc));
+
+function nameA(){
+  const n = document.getElementById('a_name').value || 'A';
+  const c = document.getElementById('a_code').value;
+  return c ? `${n} ${c}` : n;
+}
+function nameB(){
+  const n = document.getElementById('b_name').value || 'B';
+  const c = document.getElementById('b_code').value;
+  return c ? `${n} ${c}` : n;
+}
+
+function updateLabels(){
+  const a = nameA(), b = nameB();
+  const aU = specDefaults[instr.a].unitName;   // 張 or 口
+  const bU = specDefaults[instr.b].unitName;
+  const aSU = specDefaults[instr.a].specUnit;  // 股/張 or 股/口
+  const bSU = specDefaults[instr.b].specUnit;
+
+  document.getElementById('a_spec_label').textContent  = a+' 規格';
+  document.getElementById('a_min_label').textContent   = a+' 最小'+aU+'數';
+  document.getElementById('b_spec_label').textContent  = b+' 規格';
+  document.getElementById('b_min_label').textContent   = b+' 最小'+bU+'數';
+  document.getElementById('a_spec_unit').textContent   = aSU;
+  document.getElementById('a_min_unit').textContent    = aU;
+  document.getElementById('b_spec_unit').textContent   = bSU;
+  document.getElementById('b_min_unit').textContent    = bU;
+
+  document.getElementById('a_price_label').textContent = a+' 股價';
+  document.getElementById('a_lots_label').textContent  = a+' '+aU+'數';
+  document.getElementById('a_lots_unit').textContent   = aU;
+  document.getElementById('b_price_label').textContent = b+' 股價';
+
+  document.getElementById('a_exposure_label').textContent = a+' 曝險';
+  document.getElementById('b_hedge_label').textContent    = b+' 對沖'+bU+'數';
+  document.getElementById('b_exposure_label').textContent = b+' 曝險';
+  calc();
+}
+
+function fmt(n, dec=2){ return n.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+function pnlClass(n){ return n>0?'pos':n<0?'neg':'neu'; }
+function pnlStr(n){ return (n>0?'+':'')+fmt(n); }
+function pnl(dir, entry, exit, lots, spec){
+  return dir==='long' ? (exit-entry)*lots*spec : (entry-exit)*lots*spec;
+}
+
+function calc(){
+  const a_p      = parseFloat(document.getElementById('a_price').value)||0;
+  const b_p      = parseFloat(document.getElementById('b_price').value)||0;
+  const a_lots   = parseFloat(document.getElementById('a_lots').value)||0;
+  const target   = parseFloat(document.getElementById('target_ratio').value)||0;
+  const a_spec   = parseFloat(document.getElementById('a_spec').value)||0;
+  const b_spec   = parseFloat(document.getElementById('b_spec').value)||0;
+  const a_min    = parseFloat(document.getElementById('a_min_lot').value)||0;
+  const b_min    = parseFloat(document.getElementById('b_min_lot').value)||0;
+
+  if(!a_p||!b_p||!a_lots||!target||!a_spec||!b_spec||!a_min||!b_min) return;
+
+  // Keep A lots arrow step and min in sync
+  document.getElementById('a_lots').step = a_min;
+  document.getElementById('a_lots').min  = a_min;
+
+  // widen = ratio expands (A/B goes up) → long A, short B
+  // narrow = ratio contracts → short A, long B
+  const expand = direction==='narrow';
+  const a_dir  = expand ? 'long'  : 'short';
+  const b_dir  = expand ? 'short' : 'long';
+
+  const aN = nameA(), bN = nameB();
+  document.getElementById('dir_hint').innerHTML = expand
+    ? `預期比值擴大：<span class="long">多 ${aN}</span>　<span class="short">空 ${bN}</span>`
+    : `預期比值縮小：<span class="short">空 ${aN}</span>　<span class="long">多 ${bN}</span>`;
+
+  const current_ratio = a_p/b_p;
+  const a_exposure    = a_lots*a_spec*a_p;
+
+  // Snap B lots to min lot
+  const b_lots_raw   = a_exposure/b_p/b_spec;
+  const steps        = Math.floor(b_lots_raw/b_min);
+  const b_lots_floor = parseFloat((steps * b_min).toFixed(10));
+  const b_lots_ceil  = parseFloat(((steps + 1) * b_min).toFixed(10));
+  const diff_floor   = Math.abs(b_lots_floor*b_spec*b_p - a_exposure);
+  const diff_ceil    = Math.abs(b_lots_ceil*b_spec*b_p  - a_exposure);
+  const b_lots       = diff_floor <= diff_ceil ? b_lots_floor : b_lots_ceil;
+
+  const b_exposure   = b_lots*b_spec*b_p;
+  const exposure_diff = b_exposure-a_exposure;
+
+  const dec = (b_min.toString().split('.')[1]||'').length;
+  const bU = specDefaults[instr.b].unitName;
+  document.getElementById('current_ratio').textContent = fmt(current_ratio,3);
+  document.getElementById('a_exposure').textContent  = 'NT$'+fmt(a_exposure,0);
+  document.getElementById('b_lots').textContent      = fmt(b_lots, dec)+' '+bU;
+  document.getElementById('b_exposure').textContent  = 'NT$'+fmt(b_exposure,0);
+  const diffEl = document.getElementById('exposure_diff');
+  diffEl.textContent = pnlStr(exposure_diff)+' TWD';
+  diffEl.className = 'mval '+pnlClass(exposure_diff);
+
+  const a_lbl = expand ? `${aN}（做多）` : `${aN}（做空）`;
+  const b_lbl = expand ? `${bN}（做空）` : `${bN}（做多）`;
+
+  // Scenario headers use dynamic names
+  document.getElementById('a_scenario_header').textContent = `情境 A：${aN} 不動，${bN} 變動至目標比值`;
+  document.getElementById('b_scenario_header').textContent = `情境 B：${bN} 不動，${aN} 變動至目標比值`;
+
+  ['a','b'].forEach(s=>{
+    document.getElementById(s+'_a_label').textContent = a_lbl;
+    document.getElementById(s+'_b_label').textContent = b_lbl;
+  });
+
+  // Scenario A: A fixed, B moves such that A/B = target → B = A/target
+  const sa_b_exit = a_p/target;
+  const sa_b_pnl  = pnl(b_dir, b_p, sa_b_exit, b_lots, b_spec);
+  const sa_total  = sa_b_pnl;
+
+  document.getElementById('a_b_entry').textContent = fmt(b_p);
+  document.getElementById('a_b_exit').textContent  = fmt(sa_b_exit);
+  document.getElementById('a_b_pnl').textContent   = pnlStr(sa_b_pnl);
+  document.getElementById('a_a_entry').textContent = fmt(a_p);
+  document.getElementById('a_a_exit').textContent  = fmt(a_p);
+  document.getElementById('a_a_pnl').textContent   = '0.00';
+  document.getElementById('a_total').textContent   = pnlStr(sa_total);
+
+  // Scenario B: B fixed, A moves → A = B*target
+  const sb_a_exit = b_p*target;
+  const sb_a_pnl  = pnl(a_dir, a_p, sb_a_exit, a_lots, a_spec);
+  const sb_total  = sb_a_pnl;
+
+  document.getElementById('b_b_entry').textContent = fmt(b_p);
+  document.getElementById('b_b_exit').textContent  = fmt(b_p);
+  document.getElementById('b_b_pnl').textContent   = '0.00';
+  document.getElementById('b_a_entry').textContent = fmt(a_p);
+  document.getElementById('b_a_exit').textContent  = fmt(sb_a_exit);
+  document.getElementById('b_a_pnl').textContent   = pnlStr(sb_a_pnl);
+  document.getElementById('b_total').textContent   = pnlStr(sb_total);
+
+  document.getElementById('summary_a').textContent = pnlStr(sa_total)+' TWD';
+  document.getElementById('summary_b').textContent = pnlStr(sb_total)+' TWD';
+  document.getElementById('card_a').className = 'metric '+pnlClass(sa_total);
+  document.getElementById('card_b').className = 'metric '+pnlClass(sb_total);
+}
+
+updateLabels();
+calc();
+</script>
+</body>
+</html>

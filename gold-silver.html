@@ -69,12 +69,23 @@
     table.detail th,table.detail td{padding:5px 4px}
     .scenario-header{font-size:12px}
   }
+
+  .home-link{position:absolute;top:0;right:0;font-size:13px;color:#888;text-decoration:none;padding:6px 12px;border:1px solid #e0ddd4;border-radius:7px;background:#fff;transition:all .15s;font-family:inherit}
+  .home-link:hover{color:#1a1a1a;border-color:#b0a890;background:#fafafa}
+  .header-wrap{position:relative;padding-right:80px}
+  @media (max-width:600px){
+    .home-link{font-size:12px;padding:5px 10px}
+    .header-wrap{padding-right:70px}
+  }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>金銀比套利試算</h1>
-  <p class="subtitle">Gold / Silver Ratio Arbitrage Calculator</p>
+  <div class="header-wrap">
+    <a href="." class="home-link">← 首頁</a>
+    <h1>金銀比套利試算</h1>
+    <p class="subtitle">Gold / Silver Ratio Arbitrage Calculator</p>
+  </div>
 
   <div class="card">
     <p class="section-title">交易方向</p>
